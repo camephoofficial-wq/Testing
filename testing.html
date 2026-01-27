@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ID Verification</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f4f6f8;
+      padding: 20px;
+    }
+    .box {
+      background: white;
+      padding: 20px;
+      max-width: 420px;
+      margin: auto;
+      border-radius: 8px;
+    }
+    input, select, button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 8px;
+    }
+    video, img {
+      width: 100%;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+
+<body>
+<div class="box">
+  <h3>ID Verification</h3>
+
+  <input type="text" id="name" placeholder="Full Name" required>
+
+  <select id="proofType">
+    <option value="">Select Proof</option>
+    <option value="Aadhaar">Aadhaar Card</option>
+    <option value="Voter ID">Voter ID</option>
+  </select>
+
+  <input type="text" id="proofNumber" placeholder="Enter Proof Number">
+
+  <label>Live Photo</label>
+  <video id="video" autoplay></video>
+  <button type="button" onclick="capture()">📸 Capture</button>
+  <canvas id="canvas" style="display:none"></canvas>
+  <img id="preview">
+
+  <label>Attachment (PDF / JPG)</label>
+  <input type="file" id="attachment" accept=".pdf,.jpg,.jpeg,.png">
+
+  <button type="button" onclick="submitForm()">Submit</button>
+</div>
+
+<script>
+const video = document.getElementById("video");
+let photoCaptured = false;
+
+// Start camera
+navigator.mediaDevices.getUserMedia({ video: true })
+  .then(stream => video.srcObject = stream)
+  .catch(() => alert("Camera permission denied"));
+
+// Capture photo
+function capture() {
+  const canvas = document.getElementById("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video, 0, 0);
+  document.getElementById("preview").src = canvas.toDataURL("image/jpeg");
+  photoCaptured = true;
+}
+
+// Submit
+function submitForm() {
+  const proofType = document.getElementById("proofType").value;
+  const proofNumber = document.getElementById("proofNumber").value;
+  const file = document.getElementById("attachment").files[0];
+
+  if (!proofType || !proofNumber) {
+    alert("Select proof and enter number");
+    return;
+  }
+
+  if (!photoCaptured) {
+    alert("Please capture live photo");
+    return;
+  }
+
+  if (!file) {
+    alert("Attachment required");
+    return;
+  }
+
+  if (file.size > 1024 * 1024) {
+    alert("File must be under 1MB");
+    return;
+  }
+
+  const canvas = document.getElementById("canvas");
+  const livePhoto = canvas.toDataURL("image/jpeg").split(",")[1];
+
+  const reader = new FileReader();
+  reader.onload = function () {
+
+    fetch("https://script.google.com/macros/s/AKfycbx9KPMIs3wKTFjFioEHm3hPmWKcAtCWu26tT7JJyaSw5bYJ9u1OAEKHsOGH-1epBVpE/exec", {
+      method: "POST",
+      mode: "no-cors",
+      body: JSON.stringify({
+        name: document.getElementById("name").value,
+        proofType,
+        proofNumber,
+        livePhoto,
+        attachment: {
+          name: file.name,
+          type: file.type,
+          data: reader.result.split(",")[1]
+        }
+      })
+    })
+    .then(() => {
+      alert("Submitted successfully");
+    })
+    .catch(() => {
+      alert("Submit failed");
+    });
+
+  };
+
+  // 🔴 THIS LINE WAS MISSING
+  reader.readAsDataURL(file);
+}
+</script>
+
+
+</body>
+</html>
